@@ -1,9 +1,20 @@
 import { OmitType } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { CreateAdminDto } from './create-admin.dto';
+import { Expose } from 'class-transformer';
 
 export class GetAdminDto extends OmitType(CreateAdminDto, ['password'] as const) {
-  @IsBoolean()
-  @IsNotEmpty()
-  readonly hasWeb3Access: boolean;
+  @Expose()
+  id: string;
+
+  @Expose()
+  email: string;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  age: number;
+  
+  @Expose()
+  hasWeb3Access: boolean;
 }
