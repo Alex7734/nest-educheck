@@ -9,6 +9,9 @@ import appConfig from './config/appConfig';
 import swagger from './config/swagger';
 import database from './config/database';
 import { AuthModule } from './auth/auth.module';
+import { Web3User } from './user/entities/web3-user.entity';
+import { Admin } from './user/entities/admin.entity';
+import { RefreshToken } from './user/entities/refresh-token.entity';
 
 @Module({
   imports: [
@@ -26,7 +29,7 @@ import { AuthModule } from './auth/auth.module';
       port: 5432,
       password: 'changeit',
       username: 'admin',
-      entities: [User],
+      entities: [User, Web3User, Admin, RefreshToken],
       database: 'pg4django',
       synchronize: true,
       logging: true,

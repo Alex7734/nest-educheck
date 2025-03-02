@@ -3,16 +3,21 @@ import {
   Body,
   Controller,
   HttpCode,
-  NotFoundException,
   Post,
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
+import { UserService } from '../user/services/user.service';
 import { Public } from '../common/decorators/public.decorators';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthResponseDto } from './dto/authResponse.dto';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { CreateUserDto } from '../user/dto/user/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenDto } from './dto/refreshToken.dto';
+import { SignInDto } from './dto/signin.dto';
+import * as bcrypt from 'bcryptjs';
+import { User } from '../user/entities/user.entity';
+import { JwtAuthGuard } from './guards/auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -23,6 +28,7 @@ export class AuthController {
   ) {}
 
   @ApiOperation({ summary: 'User sign-up' })
+  @ApiResponse({ status: 400, description: 'User already exists' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
   @Public()
   @Post('/sign-up')
@@ -38,6 +44,9 @@ export class AuthController {
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+    await this.userService.saveRefreshToken(newUser.id.toString(), refreshToken);
+    this.userService.addLoggedInUser(newUser.id.toString());
+
     return {
       user: newUser,
       accessToken,
@@ -47,22 +56,28 @@ export class AuthController {
 
   @ApiOperation({ summary: 'User sign-in' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid credentials' })
   @Public()
   @Post('/sign-in')
   @HttpCode(200)
-  async signin(@Body() { email, password }: Partial<CreateUserDto>) {
+  async signin(@Body() signInDto: SignInDto) {
+    const { email, password } = signInDto;
+
     if (!email) {
       throw new BadRequestException('Email must be provided');
     }
 
     const user = await this.userService.findByEmail(email);
-    if (!user || user.password !== password) {
-      throw new NotFoundException('Invalid credentials');
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { email: user.email, sub: user.id };
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    await this.userService.saveRefreshToken(user.id.toString(), refreshToken);
+    this.userService.addLoggedInUser(user.id.toString());
 
     return {
       user,
@@ -73,6 +88,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Exchange refresh token' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid refresh token' })
   @Public()
   @Post('/refresh-token')
   @HttpCode(200)
@@ -87,5 +103,43 @@ export class AuthController {
     } catch (e) {
       throw new BadRequestException('Invalid refresh token');
     }
+  }
+
+  @ApiOperation({ summary: 'User sign-out' })
+  @ApiResponse({ status: 200, description: 'User signed out successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid logout request.' })
+  @Public()
+  @Post('/sign-out')
+  @HttpCode(200)
+  async signOut(@Body() { refreshToken }: RefreshTokenDto) {
+    try {
+      const payload = this.jwtService.verify(refreshToken);
+      this.userService.removeLoggedInUser(payload.sub);
+      await this.userService.invalidateRefreshToken(refreshToken);
+      return { message: 'User signed out successfully' };
+    } catch (e) {
+      throw new BadRequestException('Invalid logout request');
+    }
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get number of logged in users' })
+  @ApiResponse({ status: 200, description: 'Number of logged in users' })
+  @Post('/logged-in-users-count')
+  @HttpCode(200)
+  async loggedInUsersCount(): Promise<number> {
+    return this.userService.getNumberOfLoggedInUsers();
+  }
+  
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all logged in users' })
+  @ApiResponse({ status: 200, description: 'List of logged in users' })
+  @Post('/logged-in-users')
+  @HttpCode(200)
+  async getLoggedInUsers(): Promise<User[]> {
+    return this.userService.getLoggedInUsers();
   }
 }

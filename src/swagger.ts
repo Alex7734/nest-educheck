@@ -14,10 +14,7 @@ export const setupSwagger = (app: INestApplication) => {
     .setTitle(swaggerConfig.docTitle)
     .setDescription(swaggerConfig.docDescription)
     .setVersion(swaggerConfig.docVersion)
-    .addBearerAuth(
-      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-      'access-token',
-    )
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {

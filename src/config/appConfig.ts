@@ -6,5 +6,6 @@ export default registerAs('app', () => {
     port: parseInt(process.env.PORT || '3000', 10),
     jwtSecret:process.env.JWT_SECRET,
     jwtExpirationTime: process.env.JWT_EXPIRATION_TIME || '1d',
+    adminSecret: process.env.ADMIN_SECRET || 'admin',
   };
 });

@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
-import { User } from 'src/user/entities/user.entity';
+import { User } from '../../user/entities/user.entity';
 
 export class AuthResponseDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'your-access-token' })
   @IsString()
   accessToken: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'your-refresh-token' })
   @IsString()
   refreshToken: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: () => User })
   user: User;
 }
