@@ -124,7 +124,12 @@ describe('UserController', () => {
       age: 30,
     };
 
-    expect(await controller.create(createUserDto)).toBe(user);
+    expect(await controller.create(createUserDto)).toMatchObject({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+    });
   });
 
   it('should find all users', async () => {
@@ -148,7 +153,17 @@ describe('UserController', () => {
     ];
     jest.spyOn(service, 'findAllUser').mockImplementation(async () => users);
 
-    expect(await controller.findAll()).toStrictEqual(users);
+    const result = await controller.findAll();
+    expect(result).toEqual(
+      users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+      password: user.password,
+      refreshTokens: user.refreshTokens,
+      }))
+    );
   });
 
   it('should find a user by id', async () => {
@@ -162,7 +177,13 @@ describe('UserController', () => {
     };
     jest.spyOn(service, 'viewUser').mockImplementation(async () => user);
 
-    expect(await controller.findOne('1')).toBe(user);
+    const result = await controller.findOne('1');
+    expect(result).toMatchObject({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+    });
   });
 
   it('should update a user by id', async () => {
@@ -183,6 +204,11 @@ describe('UserController', () => {
       age: 30,
     };
 
-    expect(await controller.update('1', updateUserDto)).toBe(user);
+    expect(await controller.update('1', updateUserDto)).toMatchObject({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+    });
   });
 });

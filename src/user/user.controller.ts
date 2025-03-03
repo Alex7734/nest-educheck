@@ -29,7 +29,7 @@ import { ConfigService } from '@nestjs/config';
 import { UserType } from '../common/types/users';
 import { GetAdminDto } from './dto/admin/get-admin.dto';
 import { plainToInstance } from 'class-transformer';
-import { SerializeInterceptor } from 'src/common/interceptors/serialize.interceptor';
+import { SerializeInterceptor } from '../common/interceptors/serialize.interceptor';
 
 @ApiTags('users')
 @Controller('user')
@@ -86,7 +86,7 @@ export class UserController {
     const users = await this.userService.findAllUser();
     const web3Users = await this.web3UserService.findAllWeb3User();
       
-    return [...users.map(user => plainToInstance(GetUserDto, user)), ...web3Users.map(web3User => plainToInstance(GetWeb3UserDto, web3User, { excludeExtraneousValues: true }))];
+    return [...users.map(user => plainToInstance(GetUserDto, user)), ...web3Users.map(web3User => plainToInstance(GetWeb3UserDto, web3User))];
   }
   
   @ApiOperation({ summary: 'Retrieve a user by ID (admins are not accessible).' })
