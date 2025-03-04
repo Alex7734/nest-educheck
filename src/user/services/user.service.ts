@@ -7,6 +7,8 @@ import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { RefreshToken } from '../entities/refresh-token.entity';
+import { GetUserDto } from '../dto/user/get-user.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UserService {
@@ -77,15 +79,10 @@ export class UserService {
     this.loggedInUsers.delete(userId);
   }
 
-  getLoggedInUsers(): User[] {
-    let users: User[] = [];
-    this.loggedInUsers.forEach(async (userId) => {
-      const user = await this.viewUser(userId);
-      if (user) {
-        users.push(user);
-      }
-    });
-    return users;
+  async getLoggedInUsers(): Promise<GetUserDto[]> {
+    const loggedInUserIds = Array.from(this.loggedInUsers);
+    const users = await this.userRepository.findByIds(loggedInUserIds); 
+    return users.map(user => plainToInstance(GetUserDto, user));
   }
 
   getNumberOfLoggedInUsers(): number {

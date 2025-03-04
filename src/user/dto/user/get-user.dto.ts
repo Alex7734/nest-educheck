@@ -1,6 +1,6 @@
 import { OmitType } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
-import { Expose } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 
 export class GetUserDto extends OmitType(CreateUserDto, ['password'] as const) {
     @Expose()
@@ -14,4 +14,7 @@ export class GetUserDto extends OmitType(CreateUserDto, ['password'] as const) {
   
     @Expose()
     age?: number | null;
+
+    @Exclude()
+    password: string;
   }

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
-import { User } from '../../user/entities/user.entity';
+import { GetAdminDto } from 'src/user/dto/admin/get-admin.dto';
+import { GetUserDto } from 'src/user/dto/user/get-user.dto';
 
 export class AuthResponseDto {
   @ApiProperty({ example: 'your-access-token' })
@@ -11,6 +12,6 @@ export class AuthResponseDto {
   @IsString()
   refreshToken: string;
 
-  @ApiProperty({ type: () => User })
-  user: User;
+  @ApiProperty({ type: () => GetUserDto })
+  user: GetUserDto | GetAdminDto;
 }
