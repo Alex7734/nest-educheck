@@ -9,9 +9,12 @@ import appConfig from './config/appConfig';
 import swagger from './config/swagger';
 import database from './config/database';
 import { AuthModule } from './auth/auth.module';
-import { Web3User } from './user/entities/web3-user.entity';
 import { Admin } from './user/entities/admin.entity';
 import { RefreshToken } from './user/entities/refresh-token.entity';
+import { CourseModule } from './course/course.module';
+import { Course } from './course/entities/course.entity';
+import { EnrollmentModule } from './enrollment/enrollment.module';
+import { Enrollment } from './enrollment/entities/enrollment.entity';
 
 @Module({
   imports: [
@@ -29,15 +32,17 @@ import { RefreshToken } from './user/entities/refresh-token.entity';
       port: 5432,
       password: 'changeit',
       username: 'admin',
-      entities: [User, Web3User, Admin, RefreshToken],
+      entities: [User, Admin, RefreshToken, Course, Enrollment],
       database: 'pg4django',
       synchronize: true,
       logging: true,
     }),
     UserModule,
-    AuthModule
+    AuthModule,
+    CourseModule,
+    EnrollmentModule
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

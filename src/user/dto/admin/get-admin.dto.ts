@@ -13,8 +13,8 @@ export class GetAdminDto extends OmitType(CreateAdminDto, ['password'] as const)
   name: string;
 
   @Expose()
-  age: number;
-  
+  age: number | null;
+
   @Expose()
   hasWeb3Access: boolean;
 }

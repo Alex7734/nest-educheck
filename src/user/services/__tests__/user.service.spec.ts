@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from './user.service';
+import { UserService } from '../user.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User } from '../entities/user.entity';
-import { RefreshToken } from '../entities/refresh-token.entity';
+import { User } from '../../entities/user.entity';
+import { RefreshToken } from '../../entities/refresh-token.entity';
 import { Repository } from 'typeorm';
 
 const mockUserRepository = {
@@ -77,24 +77,26 @@ describe('UserService', () => {
     const mockUsers = [
       {
         id: '1',
-        email: 'test',
-        password: 'password',
-        name: 'test',
-        age: 30,
+        email: 'test1@example.com',
+        password: 'password1',
+        name: 'Test User 1',
+        age: 25,
+        numberOfEnrolledCourses: 0,
         refreshTokens: [],
       },
       {
         id: '2',
-        email: 'test2',
-        password: 'password',
-        name: 'test2',
+        email: 'test2@example.com',
+        password: 'password2',
+        name: 'Test User 2',
         age: 30,
+        numberOfEnrolledCourses: 0,
         refreshTokens: [],
-      }
+      },
     ]
 
-    jest.spyOn(service, 'getLoggedInUsers').mockImplementation(() => mockUsers);
-    expect(service.getLoggedInUsers()).toBe(mockUsers);
+    jest.spyOn(service, 'getLoggedInUsers').mockImplementation(async () => mockUsers);
+    expect(await service.getLoggedInUsers()).toEqual(mockUsers);
   });
 
 });

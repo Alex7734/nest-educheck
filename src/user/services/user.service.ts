@@ -17,14 +17,14 @@ export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(RefreshToken) private readonly refreshTokenRepository: Repository<RefreshToken>,
-  ) {}
+  ) { }
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.findByEmail(createUserDto.email);
     if (existingUser) {
       throw new ConflictException(`User with email ${createUserDto.email} already exists`);
     }
-    
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const user = this.userRepository.create({
       ...createUserDto,
@@ -47,7 +47,7 @@ export class UserService {
   }
 
   async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
-    const user = await this.viewUser(id); 
+    const user = await this.viewUser(id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -56,7 +56,7 @@ export class UserService {
   }
 
   async removeUser(id: string): Promise<void> {
-    const user = await this.viewUser(id); 
+    const user = await this.viewUser(id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -81,7 +81,7 @@ export class UserService {
 
   async getLoggedInUsers(): Promise<GetUserDto[]> {
     const loggedInUserIds = Array.from(this.loggedInUsers);
-    const users = await this.userRepository.findByIds(loggedInUserIds); 
+    const users = await this.userRepository.findByIds(loggedInUserIds);
     return users.map(user => plainToInstance(GetUserDto, user));
   }
 
@@ -99,5 +99,28 @@ export class UserService {
   async saveRefreshToken(userId: string, token: string): Promise<void> {
     const refreshToken = this.refreshTokenRepository.create({ token, user: { id: userId } });
     await this.refreshTokenRepository.save(refreshToken);
+  }
+
+  async findById(userId: string): Promise<User | null> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      return null;
+    }
+    return user;
+  }
+
+  async updateEnrollmentCount(userId: string, change: number): Promise<void> {
+    const result = await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        numberOfEnrolledCourses: () => `"numberOfEnrolledCourses" + ${change}`
+      })
+      .where('id = :id', { id: userId })
+      .execute();
+
+    if (result.affected === 0) {
+      throw new Error('User not found');
+    }
   }
 }

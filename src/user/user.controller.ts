@@ -18,13 +18,9 @@ import { CreateUserDto } from './dto/user/create-user.dto';
 import { UpdateUserDto } from './dto/user/update-user.dto';
 import { ApiTags, ApiResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ValidationExceptionFilter } from '../common/filters/validation-exception.filter';
-import { CreateWeb3UserDto } from './dto/web3user/create-web3-user.dto';
 import { CreateAdminDto } from './dto/admin/create-admin.dto';
-import { Web3UserService } from './services/web3user.service';
 import { AdminService } from './services/admin.service';
 import { GetUserDto } from './dto/user/get-user.dto';
-import { GetWeb3UserDto } from './dto/web3user/get-web3-user.dto';
-import { UpdateWeb3UserDto } from './dto/web3user/update-web3-user.dto';
 import { ConfigService } from '@nestjs/config';
 import { UserType } from '../common/types/users';
 import { GetAdminDto } from './dto/admin/get-admin.dto';
@@ -38,10 +34,9 @@ import { SerializeInterceptor } from '../common/interceptors/serialize.intercept
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly web3UserService: Web3UserService,
     private readonly adminService: AdminService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
@@ -53,54 +48,48 @@ export class UserController {
     return plainToInstance(GetUserDto, user);
   }
 
-  @ApiOperation({ summary: 'Create a new web3 user' })
-  @ApiResponse({ status: 201, description: 'Web3 user created successfully.' })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
-  @Post('/web3')
-  async createWeb3User(@Body() createWeb3UserDto: CreateWeb3UserDto): Promise<GetWeb3UserDto> {
-    const web3User = await this.web3UserService.createWeb3User(createWeb3UserDto);
-    return plainToInstance(GetWeb3UserDto, web3User);
-  }
-
   @ApiOperation({
     summary:
-      'Retrieve users by type: "users" for regular users, "web3users" for web3 users, omit for all users.',
+      'Retrieve users by type: "users" for regular users, "admin" for admin users, omit for all users.',
   })
   @ApiResponse({ status: 200, description: 'Retrieved users successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request, wrong type' })
   @ApiQuery({ name: 'type', enum: UserType, required: false, description: 'Type of users to retrieve' })
   @Get()
-  async findAll(@Query('type') type?: UserType | null): Promise<(GetUserDto | GetWeb3UserDto)[]> {
+  async findAll(@Query('type') type?: UserType | null): Promise<(GetUserDto | GetAdminDto)[]> {
     if (type === UserType.USERS) {
       const users = await this.userService.findAllUser();
       return users.map(user => plainToInstance(GetUserDto, user));
-    } else if (type === UserType.WEB3USERS) {
-      const web3Users = await this.web3UserService.findAllWeb3User();
-      return web3Users.map(web3User => plainToInstance(GetWeb3UserDto, web3User));
-    } 
+    } else if (type === UserType.ADMINS) {
+      const admins = await this.adminService.findAllAdmin();
+      return admins.map(admin => plainToInstance(GetAdminDto, admin));
+    }
 
     if (type) {
       throw new BadRequestException('Invalid user type');
     }
-    
+
     const users = await this.userService.findAllUser();
-    const web3Users = await this.web3UserService.findAllWeb3User();
-      
-    return [...users.map(user => plainToInstance(GetUserDto, user)), ...web3Users.map(web3User => plainToInstance(GetWeb3UserDto, web3User))];
+    const admins = await this.adminService.findAllAdmin();
+
+    return [...users.map(user => plainToInstance(GetUserDto, user)), ...admins.map(admin => plainToInstance(GetAdminDto, admin))];
   }
-  
+
   @ApiOperation({ summary: 'Retrieve a user by ID (admins are not accessible).' })
   @ApiResponse({ status: 200, description: 'Retrieved user by ID.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<GetUserDto | GetWeb3UserDto> {
-    let foundUser: GetUserDto | GetWeb3UserDto | null = null;
+  async findOne(@Param('id') id: string): Promise<GetUserDto | GetAdminDto> {
+    let foundUser: GetUserDto | GetAdminDto | null = null;
 
     try {
       foundUser = await this.userService.viewUser(id);
     } catch (error) {
       if (error instanceof NotFoundException) {
-        foundUser = await this.web3UserService.viewWeb3User(id);
+        foundUser = await this.adminService.viewAdmin(id);
+        if (Array.isArray(foundUser)) {
+          foundUser = foundUser[0];
+        }
       }
     }
 
@@ -108,7 +97,11 @@ export class UserController {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return plainToInstance(GetUserDto, foundUser);
+    if (foundUser instanceof GetUserDto) {
+      return plainToInstance(GetUserDto, foundUser);
+    }
+
+    return plainToInstance(GetAdminDto, foundUser);
   }
 
   @ApiOperation({ summary: 'Update a user by ID' })
@@ -123,18 +116,6 @@ export class UserController {
     return plainToInstance(GetUserDto, updatedUser);
   }
 
-  @ApiOperation({ summary: 'Update a web3 user by ID' })
-  @ApiResponse({ status: 200, description: 'Web3 user updated successfully.' })
-  @ApiResponse({ status: 404, description: 'Web3 user not found.' })
-  @Patch('/web3/:id')
-  async updateWeb3User(@Param('id') id: string, @Body() updateWeb3UserDto: UpdateWeb3UserDto): Promise<GetWeb3UserDto> {
-    const updatedWeb3User = await this.web3UserService.updateWeb3User(id, updateWeb3UserDto);
-    if (!updatedWeb3User) {
-      throw new NotFoundException(`Web3 user with ID ${id} not found`);
-    }
-    return plainToInstance(GetWeb3UserDto, updatedWeb3User);
-  }
-
   @ApiOperation({ summary: 'Remove a user by ID' })
   @ApiResponse({ status: 200, description: 'User removed successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
@@ -145,18 +126,6 @@ export class UserController {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     await this.userService.removeUser(id);
-  }
-
-  @ApiOperation({ summary: 'Remove a web3 user by ID' })
-  @ApiResponse({ status: 200, description: 'Web3 user removed successfully.' })
-  @ApiResponse({ status: 404, description: 'Web3 user not found.' })
-  @Delete('/web3/:id')
-  async removeWeb3User(@Param('id') id: string) {
-    const web3User = await this.web3UserService.viewWeb3User(id);
-    if (!web3User) {
-      throw new NotFoundException(`Web3 user with ID ${id} not found`);
-    }
-    await this.web3UserService.removeWeb3User(id);
   }
 
   // Admin routes protected by secret key
@@ -192,7 +161,7 @@ export class UserController {
     const admins = await this.adminService.findAllAdmin();
     return admins.map(admin => plainToInstance(GetAdminDto, admin));
   }
-  
+
   @ApiOperation({ summary: 'Retrieve an admin user by ID' })
   @ApiResponse({ status: 200, description: 'Retrieved admin user by ID.' })
   @ApiResponse({ status: 403, description: 'Forbidden access.' })
@@ -209,7 +178,7 @@ export class UserController {
     }
     return plainToInstance(GetAdminDto, admin, { excludeExtraneousValues: true });
   }
-  
+
   @ApiOperation({ summary: 'Remove an admin user by ID' })
   @ApiResponse({ status: 200, description: 'Admin user removed successfully.' })
   @ApiResponse({ status: 403, description: 'Forbidden access.' })
