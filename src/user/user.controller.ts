@@ -9,7 +9,6 @@ import {
   UseFilters,
   Query,
   NotFoundException,
-  ForbiddenException,
   BadRequestException,
   UseInterceptors,
 } from '@nestjs/common';
@@ -18,10 +17,8 @@ import { CreateUserDto } from './dto/user/create-user.dto';
 import { UpdateUserDto } from './dto/user/update-user.dto';
 import { ApiTags, ApiResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ValidationExceptionFilter } from '../common/filters/validation-exception.filter';
-import { CreateAdminDto } from './dto/admin/create-admin.dto';
 import { AdminService } from './services/admin.service';
 import { GetUserDto } from './dto/user/get-user.dto';
-import { ConfigService } from '@nestjs/config';
 import { UserType } from '../common/types/users';
 import { GetAdminDto } from './dto/admin/get-admin.dto';
 import { plainToInstance } from 'class-transformer';
@@ -35,7 +32,6 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly adminService: AdminService,
-    private readonly configService: ConfigService,
   ) { }
 
   @ApiOperation({ summary: 'Create a new user' })
